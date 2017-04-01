@@ -1,6 +1,10 @@
 var choo = require('choo')
 var html = require('choo/html')
 var getUserMedia = require('getusermedia')
+var getRecorderStream = require('media-recorder-stream')
+var io = require('socket.io-client')
+var ss = require('socket.io-stream')
+var shortid = require('shortid')
 
 var app = choo()
 app.use(store)
@@ -18,7 +22,6 @@ function mainView (state, emit) {
     emit('bodyLoaded')
   }
   function start (event) {
-    console.log(event)
     emit('startRecording')
   }
   function stop () {
@@ -27,53 +30,29 @@ function mainView (state, emit) {
 }
 
 function store (state, emitter) {
-  var recorder = null
-  var chunks = []
-
-  emitter.on('startRecording', function () {
-    recorder.start(1000);
-    console.log(recorder.state);
-    console.log("recorder started");
-  })
-
-  emitter.on('stopRecording', function () {
-    recorder.stop();
-    console.log(recorder.state);
-    console.log("recorder stopped");
-  })
+  var socket = io.connect('http://localhost:3000/recording')
+  var microphoneMediaStream = null
 
   emitter.on('bodyLoaded', function () {
     getUserMedia({ video: false, audio: true }, function (err, stream) {
       if (err !== null) {
         throw err;
       }
-      recorder = new MediaRecorder(stream)
-      recorder.onstop = onRecordingDone
-      recorder.ondataavailable = onRecordingDataAvailable
+      // Save the MediaStream so that we can use it when we click on record
+      microphoneMediaStream = stream
     })
   })
 
-  function onRecordingDone (event) {
-    console.log("Recording stopped. Uploading...")
-
-    var blob = new Blob(chunks, { 'type' : 'audio/webm' })
-    var xhr = new XMLHttpRequest()
-    xhr.open('POST', 'http://localhost:3000', true)
-    xhr.onload = onRecordingUploadDone
-    xhr.send(blob)
-
-    // Empty chunks array to make it ready for a new recording
-    chunks = []
-  }
-
-  function onRecordingUploadDone (event) {
-    console.log("Upload of recording done.")
-  }
-
-  function onRecordingDataAvailable (event) {
-    console.log(event)
-    if (event.data.size > 0) {
-      chunks.push(event.data)
-    }
-  }
+  emitter.on('startRecording', function () {
+    var microphoneStream = getRecorderStream(microphoneMediaStream)
+    var filename = shortid() + '.ogg'
+    var socketStream = ss.createStream()
+    ss(socket).emit('new', socketStream, { name: filename })
+    microphoneStream.pipe(socketStream)
+    emitter.once('stopRecording', function () {
+      microphoneStream.unpipe(socketStream)
+      microphoneStream.destroy()
+      console.log("Saved new recording: " + filename);
+    })
+  })
 }

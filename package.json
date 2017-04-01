@@ -11,6 +11,10 @@
   "license": "ISC",
   "dependencies": {
     "choo": "^5.0.4",
-    "getusermedia": "^2.0.1"
+    "getusermedia": "^2.0.1",
+    "media-recorder-stream": "^2.1.1",
+    "shortid": "^2.2.8",
+    "socket.io-client": "^1.7.3",
+    "socket.io-stream": "^0.9.1"
   }
 }
