@@ -1,7 +1,7 @@
 {
-  "name": "gum",
+  "name": "recording-stream-client",
   "version": "1.0.0",
-  "description": "",
+  "description": "Stream microphone to a server over websockets",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
