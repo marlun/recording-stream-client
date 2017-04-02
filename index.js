@@ -49,6 +49,7 @@ function store (state, emitter) {
     var socketStream = ss.createStream()
     ss(socket).emit('new', socketStream, { name: filename })
     microphoneStream.pipe(socketStream)
+    console.log("Started new recording: " + filename);
     emitter.once('stopRecording', function () {
       microphoneStream.unpipe(socketStream)
       microphoneStream.destroy()
